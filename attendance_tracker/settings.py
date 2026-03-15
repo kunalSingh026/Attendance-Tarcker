@@ -62,13 +62,22 @@ MIDDLEWARE = [
 # --- 4. DATABASE CONFIGURATION (Production Ready) ---
 
 if RENDER_EXTERNAL_HOSTNAME:
-    # Use the DATABASE_URL environment variable provided by Render (PostgreSQL)
-    DATABASES = {
-        'default': dj_database_url.config(
-            default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600  # Persistent connections
-        )
-    }
+    # Use DATABASE_URL environment variable if available (PostgreSQL). Otherwise fallback to SQLite for quick deploy.
+    database_url = os.environ.get('DATABASE_URL')
+    if database_url:
+        DATABASES = {
+            'default': dj_database_url.config(
+                default=database_url,
+                conn_max_age=600
+            )
+        }
+    else:
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
 else:
     # Use SQLite for local development
     DATABASES = {
