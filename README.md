@@ -24,7 +24,7 @@ A simple class attendance tracker built with Django, including responsive dashbo
 ## ⚙️ Local Setup
 1. Clone repository:
    ```bash
-   git clone <repo-url>
+   git clone (https://github.com/kunalSingh026/Attendance-Tarcker.git)
    cd attendance_tracker
    ```
 2. Create and activate venv:
