@@ -1,0 +1,5 @@
+Django
+gunicorn
+psycopg2-binary  # For connecting to Render's PostgreSQL database
+dj-database-url  # For parsing Render's database URL
+whitenoise       # For efficiently serving static files in production

@@ -1,0 +1,1104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Attendance Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg:        #0b0b0e;
+            --surface:   #131317;
+            --surface2:  #1a1a21;
+            --border:    #22222e;
+            --border2:   #2c2c3e;
+            --text:      #e8e8f0;
+            --muted:     #6b6b84;
+            --accent:    #6366f1;
+            --accent2:   #818cf8;
+            --green:     #22d3a0;
+            --green-dim: #0d2e22;
+            --red:       #f87171;
+            --red-dim:   #2e0d0d;
+            --yellow:    #fbbf24;
+            --yellow-dim:#2e240d;
+            --radius:    18px;
+            --gap:       10px;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            min-height: 100vh;
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+
+        .wrapper {
+            width: min(100%, 1280px);
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* ─── TOPBAR ─────────────────────────────────── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--gap);
+            flex-wrap: wrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .topbar-logo {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -1px;
+            flex-shrink: 0;
+        }
+
+        .topbar-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+
+        .topbar-subtitle {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 9px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 6px;
+        }
+
+        .btn-primary { background: var(--accent); color: #fff; box-shadow: 0 4px 16px rgba(99,102,241,.35); }
+        .btn-primary:hover { background: #5254d4; transform: translateY(-1px); }
+
+        .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--surface); border-color: var(--border2); }
+
+        .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid #3e1a1a; }
+        .btn-danger:hover { background: #3e1a1a; }
+
+        /* ─── BENTO GRID ─────────────────────────────── */
+        .bento {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: var(--gap);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            transition: border-color .25s, transform .25s;
+        }
+        .card:hover { border-color: var(--border2); }
+
+        /* subtle top-edge shimmer */
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+        }
+
+        .mono { font-family: 'DM Mono', monospace; }
+        .label-tag {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .label-tag::before {
+            content: '';
+            width: 4px; height: 4px;
+            border-radius: 50%;
+            background: currentColor;
+            display: inline-block;
+        }
+
+        /* ─── CARD: Overall % ────────────────────────── */
+        .card-overall {
+            grid-column: 1 / 4;
+            grid-row: 1 / 3;
+            display: flex; flex-direction: column; justify-content: space-between;
+            background: linear-gradient(150deg, #131317, #171724);
+            min-height: 220px;
+        }
+
+        .overall-pct {
+            font-size: 72px;
+            font-weight: 800;
+            letter-spacing: -4px;
+            line-height: 1;
+        }
+        .overall-pct.green { color: var(--green); }
+        .overall-pct.yellow { color: var(--yellow); }
+        .overall-pct.red   { color: var(--red); }
+
+        .overall-meta {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--muted);
+        }
+
+        .req-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 14px;
+        }
+
+        /* ─── CARD: Profile ──────────────────────────── */
+        .card-profile {
+            grid-column: 4 / 8;
+            grid-row: 1 / 3;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        .profile-pic-wrap {
+            position: relative;
+            width: 72px; height: 72px;
+            flex-shrink: 0;
+        }
+
+        .profile-pic-wrap img {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--border2);
+        }
+
+        .edit-pic-btn {
+            position: absolute;
+            bottom: -2px; right: -2px;
+            width: 24px; height: 24px;
+            background: var(--accent);
+            border: none; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            color: #fff;
+            transition: background .2s;
+        }
+        .edit-pic-btn:hover { background: #5254d4; }
+        .edit-pic-btn svg { width: 12px; height: 12px; }
+
+        .profile-info { flex: 1; }
+
+        .profile-greeting {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 1px;
+        }
+
+        .profile-name {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -0.8px;
+            line-height: 1.1;
+            margin-top: 2px;
+        }
+
+        .profile-email {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 4px;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .change-pic-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--surface2);
+            border: 1px solid var(--border2);
+            border-radius: 9px;
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--accent2);
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all .2s;
+            width: fit-content;
+        }
+        .change-pic-btn:hover { background: #1e1e30; border-color: var(--accent); }
+
+        /* ─── CARD: Donut chart ──────────────────────── */
+        .card-chart {
+            grid-column: 8 / 11;
+            grid-row: 1 / 3;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 12px;
+        }
+
+        .chart-wrap {
+            position: relative;
+            width: 130px; height: 130px;
+        }
+
+        .chart-center {
+            position: absolute;
+            inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+        }
+
+        .chart-center-num {
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text);
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .chart-center-label {
+            font-size: 9px;
+            font-family: 'DM Mono', monospace;
+            color: var(--muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .chart-legend {
+            display: flex; gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .legend-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 11px;
+            font-family: 'DM Mono', monospace;
+            color: var(--muted);
+        }
+
+        .legend-dot {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+        }
+
+        /* ─── CARD: Quick stats ──────────────────────── */
+        .card-mini {
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        .card-mini-top .mini-val {
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .card-mini-top .mini-val.green { color: var(--green); }
+        .card-mini-top .mini-val.red   { color: var(--red); }
+
+        .card-mini-bot {
+            font-size: 11px;
+            color: var(--muted);
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        /* Quick stat positions */
+        .card-stat-present { grid-column: 11 / 13; grid-row: 1; }
+        .card-stat-absent  { grid-column: 11 / 13; grid-row: 2; }
+
+        /* ─── EMPTY STATE ────────────────────────────── */
+        .card-empty {
+            grid-column: 1 / 13;
+            background: var(--yellow-dim);
+            border-color: #3a2c00;
+            padding: 28px 32px;
+            display: flex; gap: 16px; align-items: flex-start;
+        }
+
+        .empty-icon { font-size: 28px; flex-shrink: 0; }
+        .empty-title { font-size: 16px; font-weight: 700; color: var(--yellow); margin-bottom: 4px; }
+        .empty-body  { font-size: 13px; color: #c8a84b; line-height: 1.6; }
+        .empty-body a { color: var(--yellow); font-weight: 600; text-decoration: underline; }
+
+        /* ─── REPORT TABLE ───────────────────────────── */
+        .card-table {
+            grid-column: 1 / 13;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .table-header {
+            padding: 18px 24px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+
+        .table-title {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.3px;
+        }
+
+        .table-count {
+            font-family: 'DM Mono', monospace;
+            font-size: 11px;
+            color: var(--muted);
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 3px 10px;
+        }
+
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+
+        thead th {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            color: var(--muted);
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 8px 14px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            background: var(--surface2);
+        }
+
+        tbody td {
+            padding: 10px 14px;
+            font-size: 13px;
+            color: var(--text);
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+        }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: var(--surface2); }
+
+        tbody td {
+            padding: 13px 24px;
+            font-size: 13px;
+            color: var(--text);
+            white-space: nowrap;
+        }
+
+        .td-course { font-weight: 600; color: var(--text); }
+
+        .bar-wrap {
+            width: 100px;
+            height: 6px;
+            border-radius: 3px;
+            background: var(--surface2);
+            overflow: hidden;
+        }
+        .bar-fill { height: 100%; border-radius: 3px; }
+
+        .status-pill {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+        .pill-green  { background: var(--green-dim); color: var(--green); border: 1px solid #0f3a26; }
+        .pill-yellow { background: var(--yellow-dim); color: var(--yellow); border: 1px solid #3a2c00; }
+        .pill-red    { background: var(--red-dim); color: var(--red); border: 1px solid #3a0f0f; }
+
+        .pct-green  { color: var(--green); font-weight: 700; font-family: 'DM Mono', monospace; }
+        .pct-yellow { color: var(--yellow); font-weight: 700; font-family: 'DM Mono', monospace; }
+        .pct-red    { color: var(--red); font-weight: 700; font-family: 'DM Mono', monospace; }
+
+        /* ─── MODAL ──────────────────────────────────── */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            backdrop-filter: blur(4px);
+            z-index: 50;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; }
+
+        .modal-box {
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 520px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            letter-spacing: -0.4px;
+        }
+
+        .modal-close {
+            position: absolute; top: 16px; right: 16px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            width: 30px; height: 30px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; color: var(--muted);
+            transition: all .2s;
+        }
+        .modal-close:hover { background: var(--border); color: var(--text); }
+
+        .upload-section {
+            background: var(--surface2);
+            border: 1px solid #0f2e1e;
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+        }
+
+        .upload-section h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--green);
+            margin-bottom: 12px;
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .file-input {
+            width: 100%;
+            font-size: 12px;
+            color: var(--muted);
+            background: var(--surface);
+            border: 1px solid var(--border2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+        .file-input:focus { border-color: var(--green); }
+
+        .btn-upload {
+            margin-top: 10px;
+            width: 100%;
+            padding: 10px;
+            background: #0d2e1e;
+            border: 1px solid #0f3a26;
+            border-radius: 9px;
+            color: var(--green);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all .2s;
+        }
+        .btn-upload:hover { background: #112a1e; }
+
+        .avatar-section {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .avatar-section h4 {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--accent2);
+            margin-bottom: 12px;
+            font-family: 'DM Mono', monospace;
+            letter-spacing: 0.5px;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .avatar-grid img {
+            width: 100%; aspect-ratio: 1;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all .2s;
+        }
+
+        .avatar-grid img:hover { border-color: var(--accent); }
+        .avatar-selected { border: 2px solid var(--accent) !important; box-shadow: 0 0 0 3px rgba(99,102,241,.25); }
+
+        .btn-save-avatar {
+            margin-top: 12px;
+            width: 100%;
+            padding: 10px;
+            background: var(--accent);
+            border: none;
+            border-radius: 9px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: all .2s;
+            box-shadow: 0 4px 14px rgba(99,102,241,.3);
+        }
+        .btn-save-avatar:hover { background: #5254d4; }
+        .btn-save-avatar:disabled { opacity: .5; cursor: not-allowed; }
+
+        .mobile-menu-btn { display: none; border-radius: 10px; padding: 8px 12px; font-size: 13px; }
+        .topbar-actions { transition: max-height .2s ease, opacity .2s ease; }
+
+        /* ─── RESPONSIVE ─────────────────────────────── */
+        @media (max-width: 1100px) {
+            .bento { grid-template-columns: repeat(12, 1fr); }
+            .card-overall   { grid-column: 1 / 7; grid-row: 1; min-height: auto; }
+            .card-profile   { grid-column: 7 / 13; grid-row: 1; }
+            .card-chart     { grid-column: 1 / 7; grid-row: 2; }
+            .card-stat-present { grid-column: 7 / 10; grid-row: 2; }
+            .card-stat-absent  { grid-column: 10 / 13; grid-row: 2; }
+        }
+
+        @media (max-width: 900px) {
+            .bento { grid-template-columns: 1fr 1fr; }
+            .card-overall   { grid-column: 1 / 3; }
+            .card-profile   { grid-column: 1 / 3; }
+            .card-chart     { grid-column: 1 / 3; }
+            .card-stat-present { grid-column: 1 / 2; }
+            .card-stat-absent  { grid-column: 2 / 3; }
+            .card-table, .card-empty { grid-column: 1 / 3; }
+            .topbar-title   { font-size: 18px; }
+        }
+
+        @media (max-width: 700px) {
+            .mobile-menu-btn { display: inline-flex; }
+            .topbar-actions { display: none; width: 100%; justify-content: flex-start; gap: 8px; flex-direction: column; margin-top: 8px; }
+            .topbar-actions.open { display: flex; opacity: 1; }
+            .topbar-actions a { width: 100%; justify-content: center; }
+
+            .bento { grid-template-columns: 1fr; }
+            .card-overall, .card-profile, .card-chart, .card-stat-present, .card-stat-absent, .card-table, .card-empty {
+                grid-column: 1 / 2 !important;
+                grid-row: auto !important;
+            }
+            .card { padding: 16px; }
+            .topbar { align-items: flex-start; }
+            .topbar-left { width: 100%; }
+            .table-wrap table { min-width: 100%; }
+            .table-wrap { overflow: auto; }
+            .card-mini { text-align: left; }
+            .card-mini-top .mini-val { font-size: 28px; }
+        }
+
+        @media (max-width: 480px) {
+            .wrapper { padding: 10px; }
+            .topbar-left { gap: 10px; }
+            .topbar-title { font-size: 16px; }
+            .topbar-subtitle { font-size: 10px; }
+            .btn { padding: 8px 12px; font-size: 12px; }
+            .card { border-radius: 14px; }
+            .chart-wrap { width: 120px; height: 120px; }
+            .overall-pct { font-size: 58px; }
+            .profile-name { font-size: 20px; }
+            .table-header { flex-wrap: wrap; gap: 8px; }
+            .table-title { font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">AT</div>
+            <div>
+                <div class="topbar-title">Attendance Dashboard</div>
+                <div class="topbar-subtitle">Academic Tracker · v2</div>
+            </div>
+        </div>
+        <button id="mobile-menu-button" class="btn btn-ghost mobile-menu-btn" type="button" aria-expanded="false" aria-controls="mobile-actions">☰ Menu</button>
+        <div id="mobile-actions" class="topbar-actions">
+            <a href="{% url 'track_attendance' %}" class="btn btn-primary">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                Mark Attendance
+            </a>
+            <a href="{% url 'manage_courses' %}" class="btn btn-ghost">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                Manage Courses
+            </a>
+            <a href="{% url 'logout' %}" class="btn btn-danger">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                Logout
+            </a>
+        </div>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="bento">
+
+        {% if overall_stats|length == 0 %}
+
+        <div class="card card-empty">
+            <div class="empty-icon">👋</div>
+            <div>
+                <div class="empty-title">Welcome! Let's get started.</div>
+                <div class="empty-body">
+                    You need to <a href="{% url 'manage_courses' %}">add courses</a> and <a href="{% url 'track_attendance' %}">mark attendance</a> before the dashboard can show results.
+                </div>
+            </div>
+        </div>
+
+        {% else %}
+
+        <!-- ── Overall % ── -->
+        <div class="card card-overall">
+            <div class="label-tag">Overall Attendance</div>
+            <div class="overall-pct {% if overall_percentage >= 75 %}green{% elif overall_percentage >= 50 %}yellow{% else %}red{% endif %}">
+                {{ overall_percentage|default:"0.0" }}%
+            </div>
+            <div class="overall-meta">Academic Performance</div>
+            <div class="req-pill">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Min required: 75%
+            </div>
+        </div>
+
+        <!-- ── Profile ── -->
+        <div class="card card-profile">
+            <div class="label-tag">User Profile</div>
+
+            <div style="display:flex; gap:14px; align-items:flex-start;">
+                <div class="profile-pic-wrap">
+                    <img id="profile-pic-display"
+                         src="{{ user_profile.get_profile_image_url }}"
+                         alt="{{ user.username }}'s profile picture">
+                    <button id="edit-pic-btn" class="edit-pic-btn" type="button" title="Change picture">
+                        <svg viewBox="0 0 20 20" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zm-5.464 5.464l-.707.707-4 4V17h4l4-4-.707-.707-1.414-1.414.707-.707-1.414-1.414z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="profile-info">
+                    <div class="profile-greeting">Welcome,</div>
+                    <div class="profile-name">{{ user.get_full_name|default:user.username }}</div>
+                    {% if user_profile.student_id %}
+                        <div class="profile-email mono" style="margin-top:4px; font-size:11px;">ID: {{ user_profile.student_id }}</div>
+                    {% endif %}
+                    {% if user.email %}
+                        <div class="profile-email">{{ user.email }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div style="margin-top: auto; padding-top: 16px;">
+                <button id="open-profile-modal" class="change-pic-btn">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    Change Profile Picture
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Donut Chart ── -->
+        <div class="card card-chart">
+            <div class="label-tag">Distribution</div>
+            <div class="chart-wrap">
+                <canvas id="attendancePieChart"></canvas>
+                <div class="chart-center">
+                    <div class="chart-center-num" id="chart-pct-label">—</div>
+                    <div class="chart-center-label">Present</div>
+                </div>
+            </div>
+            <div class="chart-legend">
+                <div class="legend-item"><span class="legend-dot" style="background:#22d3a0"></span>Present</div>
+                <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span>Absent</div>
+            </div>
+        </div>
+
+        <!-- ── Mini: Present ── -->
+        <div class="card card-mini card-stat-present">
+            <div class="label-tag">Present</div>
+            <div class="card-mini-top">
+                <div class="mini-val green" id="stat-present">—</div>
+            </div>
+            <div class="card-mini-bot">Total classes attended</div>
+        </div>
+
+        <!-- ── Mini: Absent ── -->
+        <div class="card card-mini card-stat-absent">
+            <div class="label-tag">Absent</div>
+            <div class="card-mini-top">
+                <div class="mini-val red" id="stat-absent">—</div>
+            </div>
+            <div class="card-mini-bot">Classes missed</div>
+        </div>
+
+        <!-- ── Overall Report Table ── -->
+        <div class="card card-table">
+            <div class="table-header">
+                <div class="table-title">Overall Attendance Report</div>
+                <div class="table-count">{{ overall_stats|length }} courses</div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Total Classes</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Percentage</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in overall_stats %}
+                        <tr>
+                            <td class="td-course">{{ stat.name }}</td>
+                            <td class="mono" style="color:var(--muted)">{{ stat.total_classes }}</td>
+                            <td style="color:var(--green); font-family:'DM Mono',monospace; font-weight:600">{{ stat.present_count }}</td>
+                            <td style="color:var(--red); font-family:'DM Mono',monospace; font-weight:600">{{ stat.absent_count }}</td>
+                            <td class="{% if stat.percentage >= 75 %}pct-green{% elif stat.percentage >= 50 %}pct-yellow{% else %}pct-red{% endif %}">{{ stat.percentage }}%</td>
+                            <td>
+                                <div class="bar-wrap">
+                                    <div class="bar-fill" style="width:{{ stat.percentage }}%; background:{% if stat.percentage >= 75 %}#22d3a0{% elif stat.percentage >= 50 %}#fbbf24{% else %}#f87171{% endif %}"></div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if stat.percentage >= 75 %}
+                                    <span class="status-pill pill-green">Safe</span>
+                                {% elif stat.percentage >= 50 %}
+                                    <span class="status-pill pill-yellow">At Risk</span>
+                                {% else %}
+                                    <span class="status-pill pill-red">Critical</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Monthly Report Table ── -->
+        <div class="card card-table">
+            <div class="table-header">
+                <div class="table-title">Monthly Report — {{ month_name }}</div>
+                <div class="table-count">{{ monthly_stats|length }} courses</div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Total Classes</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Percentage</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in monthly_stats %}
+                        <tr>
+                            <td class="td-course">{{ stat.name }}</td>
+                            <td class="mono" style="color:var(--muted)">{{ stat.total_classes }}</td>
+                            <td style="color:var(--green); font-family:'DM Mono',monospace; font-weight:600">{{ stat.present_count }}</td>
+                            <td style="color:var(--red); font-family:'DM Mono',monospace; font-weight:600">{{ stat.absent_count }}</td>
+                            <td class="{% if stat.percentage >= 75 %}pct-green{% elif stat.percentage >= 50 %}pct-yellow{% else %}pct-red{% endif %}">{{ stat.percentage }}%</td>
+                            <td>
+                                <div class="bar-wrap">
+                                    <div class="bar-fill" style="width:{{ stat.percentage }}%; background:{% if stat.percentage >= 75 %}#22d3a0{% elif stat.percentage >= 50 %}#fbbf24{% else %}#f87171{% endif %}"></div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if stat.percentage >= 75 %}
+                                    <span class="status-pill pill-green">Safe</span>
+                                {% elif stat.percentage >= 50 %}
+                                    <span class="status-pill pill-yellow">At Risk</span>
+                                {% else %}
+                                    <span class="status-pill pill-red">Critical</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Weekly Report Table ── -->
+        <div class="card card-table">
+            <div class="table-header">
+                <div class="table-title">Weekly Report — Last 7 Days</div>
+                <div class="table-count">{{ weekly_stats|length }} courses</div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Course</th>
+                            <th>Total Classes</th>
+                            <th>Present</th>
+                            <th>Absent</th>
+                            <th>Percentage</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stat in weekly_stats %}
+                        <tr>
+                            <td class="td-course">{{ stat.name }}</td>
+                            <td class="mono" style="color:var(--muted)">{{ stat.total_classes }}</td>
+                            <td style="color:var(--green); font-family:'DM Mono',monospace; font-weight:600">{{ stat.present_count }}</td>
+                            <td style="color:var(--red); font-family:'DM Mono',monospace; font-weight:600">{{ stat.absent_count }}</td>
+                            <td class="{% if stat.percentage >= 75 %}pct-green{% elif stat.percentage >= 50 %}pct-yellow{% else %}pct-red{% endif %}">{{ stat.percentage }}%</td>
+                            <td>
+                                <div class="bar-wrap">
+                                    <div class="bar-fill" style="width:{{ stat.percentage }}%; background:{% if stat.percentage >= 75 %}#22d3a0{% elif stat.percentage >= 50 %}#fbbf24{% else %}#f87171{% endif %}"></div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if stat.percentage >= 75 %}
+                                    <span class="status-pill pill-green">Safe</span>
+                                {% elif stat.percentage >= 50 %}
+                                    <span class="status-pill pill-yellow">At Risk</span>
+                                {% else %}
+                                    <span class="status-pill pill-red">Critical</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% endif %}
+
+    </div><!-- /bento -->
+
+</div><!-- /max-width wrapper -->
+
+<!-- ─── PROFILE MODAL ─────────────────────────── -->
+<div id="profile-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">Select Profile Picture</div>
+        <button id="close-modal" class="modal-close" type="button">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+
+        <!-- Upload -->
+        <div class="upload-section">
+            <h4>↑ Upload Your Own</h4>
+            <form id="upload-form" method="POST" action="{% url 'upload_profile_pic' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="file" name="profile_picture" accept="image/*" required class="file-input">
+                <button type="submit" class="btn-upload">Upload & Save</button>
+            </form>
+        </div>
+
+        <!-- Avatar grid -->
+        <div class="avatar-section">
+            <h4>Choose an Avatar</h4>
+            <div id="avatar-grid" class="avatar-grid">
+                {% for i in "1,2,3,4,5,6,7,8,9,10,11,12"|make_list %}
+                    <img src="{% static 'tracker/avatars/avatar_' %}{{ i }}.png"
+                         data-avatar-name="avatar_{{ i }}.png"
+                         class="avatar-select {% if user_profile.avatar_name == 'avatar_'|add:i|add:'.png' %}avatar-selected{% endif %}"
+                         alt="Avatar {{ i }}">
+                {% endfor %}
+            </div>
+            <button id="save-avatar-btn" class="btn-save-avatar" disabled>Save Selected Avatar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ── Chart ─────────────────────────────────────────
+    const chartDataRaw = '{{ main_chart_data_json|safe }}';
+    let chartData;
+    try {
+        chartData = JSON.parse(chartDataRaw.replace(/&quot;/g, '"'));
+    } catch (e) { console.error(e); return; }
+
+    const total = chartData.present + chartData.absent;
+
+    // Fill mini-stat cards
+    document.getElementById('stat-present').textContent = chartData.present ?? '—';
+    document.getElementById('stat-absent').textContent  = chartData.absent  ?? '—';
+
+    if (total > 0) {
+        const pct = ((chartData.present / total) * 100).toFixed(1);
+        document.getElementById('chart-pct-label').textContent = pct + '%';
+
+        const ctx = document.getElementById('attendancePieChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Present', 'Absent'],
+                datasets: [{
+                    data: [chartData.present, chartData.absent],
+                    backgroundColor: ['#22d3a0', '#f87171'],
+                    hoverOffset: 6,
+                    borderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const v = ctx.parsed;
+                                const p = ((v / total) * 100).toFixed(1);
+                                return `${ctx.label}: ${v} (${p}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '65%',
+            }
+        });
+    }
+
+    // ── Modal ─────────────────────────────────────────
+    const modal   = document.getElementById('profile-modal');
+    const openBtn = document.getElementById('open-profile-modal');
+    const editBtn = document.getElementById('edit-pic-btn');
+    const closeBtn= document.getElementById('close-modal');
+
+    openBtn.addEventListener('click', () => modal.classList.add('open'));
+    editBtn.addEventListener('click', () => modal.classList.add('open'));
+    closeBtn.addEventListener('click', () => modal.classList.remove('open'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('open'); });
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileActions = document.getElementById('mobile-actions');
+    if (mobileMenuButton && mobileActions) {
+        mobileMenuButton.addEventListener('click', () => {
+            const open = mobileActions.classList.toggle('open');
+            mobileMenuButton.setAttribute('aria-expanded', open ? 'true' : 'false');
+        });
+    }
+
+    // ── Avatar selection ──────────────────────────────
+    const avatarGrid    = document.getElementById('avatar-grid');
+    const saveAvatarBtn = document.getElementById('save-avatar-btn');
+    const profilePic    = document.getElementById('profile-pic-display');
+    let selectedAvatar  = null;
+
+    avatarGrid.querySelectorAll('.avatar-select').forEach(img => {
+        if (img.classList.contains('avatar-selected')) saveAvatarBtn.disabled = false;
+        img.addEventListener('click', function () {
+            avatarGrid.querySelectorAll('.avatar-select').forEach(i => i.classList.remove('avatar-selected'));
+            this.classList.add('avatar-selected');
+            selectedAvatar = this.dataset.avatarName;
+            saveAvatarBtn.disabled = false;
+        });
+    });
+
+    saveAvatarBtn.addEventListener('click', function () {
+        if (!selectedAvatar) return;
+        this.disabled = true;
+        this.textContent = 'Saving…';
+        const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+        fetch("{% url 'update_avatar' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_name: selectedAvatar })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) { profilePic.src = data.new_image_url; modal.classList.remove('open'); }
+            else alert('Error: ' + data.message);
+        })
+        .catch(() => alert('An error occurred.'))
+        .finally(() => { this.disabled = false; this.textContent = 'Save Selected Avatar'; });
+    });
+
+    document.getElementById('upload-form').addEventListener('submit', function () {
+        const btn = this.querySelector('button[type="submit"]');
+        btn.disabled = true; btn.textContent = 'Uploading…';
+    });
+});
+</script>
+</body>
+</html>

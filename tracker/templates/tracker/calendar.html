@@ -1,0 +1,615 @@
+{% extends 'tracker/base.html' %}
+
+{% block content %}
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg:         #0b0b0e;
+        --surface:    #131317;
+        --surface2:   #1a1a21;
+        --border:     #22222e;
+        --border2:    #2c2c3e;
+        --text:       #e8e8f0;
+        --muted:      #6b6b84;
+        --accent:     #6366f1;
+        --accent2:    #818cf8;
+        --green:      #22d3a0;
+        --green-dim:  #0d2e22;
+        --yellow:     #fbbf24;
+        --yellow-dim: #2e240d;
+        --red:        #f87171;
+        --red-dim:    #2e0d0d;
+        --radius:     18px;
+        --gap:        10px;
+    }
+
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        min-height: 100vh;
+        color: var(--text);
+        padding: 16px;
+    }
+
+    /* ── TOPBAR ──────────────────────────────────── */
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: var(--gap);
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+
+    .topbar-logo {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        background: var(--accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 800; color: #fff;
+        letter-spacing: -1px; flex-shrink: 0;
+    }
+
+    .topbar-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    .topbar-sub   { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+
+    .btn {
+        padding: 9px 18px;
+        border-radius: 10px;
+        font-size: 13px; font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer; text-decoration: none; border: none;
+        transition: all .2s;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-ghost  { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface); border-color: var(--border2); }
+
+    /* ── BENTO GRID ──────────────────────────────── */
+    .bento {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: var(--gap);
+    }
+
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+        position: relative;
+        overflow: hidden;
+        transition: border-color .25s;
+    }
+
+    .card::before {
+        content: '';
+        position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+    }
+
+    .label-tag {
+        font-family: 'DM Mono', monospace;
+        font-size: 10px; color: var(--muted);
+        letter-spacing: 1.5px; text-transform: uppercase;
+        margin-bottom: 14px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .label-tag::before {
+        content: ''; width: 4px; height: 4px;
+        border-radius: 50%; background: currentColor; display: inline-block;
+    }
+
+    /* ── CARD SPANS ──────────────────────────────── */
+
+    /* Legend card — top left 3 cols */
+    .card-legend {
+        grid-column: 1 / 4;
+        grid-row: 1;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* Stats strip — top right 9 cols split into 3 */
+    .card-stat-safe     { grid-column: 4 / 7;  grid-row: 1; }
+    .card-stat-warning  { grid-column: 7 / 10; grid-row: 1; }
+    .card-stat-danger   { grid-column: 10 / 13; grid-row: 1; }
+
+    /* Calendar — full width */
+    .card-calendar {
+        grid-column: 1 / 13;
+        grid-row: 2;
+        padding: 28px 28px 20px;
+    }
+
+    /* ── LEGEND ITEMS ────────────────────────────── */
+    .legend-item {
+        display: flex; align-items: center; gap: 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 14px;
+    }
+
+    .legend-swatch {
+        width: 28px; height: 28px;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+    .swatch-green  { background: var(--green-dim);  border: 1px solid #0f3a26; }
+    .swatch-yellow { background: var(--yellow-dim); border: 1px solid #3a2c00; }
+    .swatch-red    { background: var(--red-dim);    border: 1px solid #3a0f0f; }
+
+    .legend-text .lt-title {
+        font-size: 12px; font-weight: 600;
+        color: var(--text); margin-bottom: 1px;
+    }
+    .legend-text .lt-sub {
+        font-size: 10px; font-family: 'DM Mono', monospace;
+        color: var(--muted); letter-spacing: 0.3px;
+    }
+
+    /* ── STAT MINI CARDS ─────────────────────────── */
+    .stat-number {
+        font-size: 42px; font-weight: 800;
+        letter-spacing: -2px; line-height: 1;
+        margin-bottom: 6px;
+    }
+    .stat-number.green  { color: var(--green); }
+    .stat-number.yellow { color: var(--yellow); }
+    .stat-number.red    { color: var(--red); }
+
+    .stat-sub {
+        font-size: 11px; font-family: 'DM Mono', monospace;
+        color: var(--muted); letter-spacing: 0.5px;
+    }
+
+    .stat-bar {
+        height: 3px; border-radius: 2px;
+        margin-top: 14px;
+        opacity: .5;
+    }
+
+    /* ── FULLCALENDAR OVERRIDES ──────────────────── */
+    #calendar {
+        --fc-border-color:           #22222e;
+        --fc-page-bg-color:          transparent;
+        --fc-neutral-bg-color:       #1a1a21;
+        --fc-list-event-hover-bg-color: #1a1a21;
+        --fc-today-bg-color:         rgba(99,102,241,.08);
+        --fc-button-bg-color:        #1a1a21;
+        --fc-button-border-color:    #2c2c3e;
+        --fc-button-hover-bg-color:  #22222e;
+        --fc-button-hover-border-color: #6366f1;
+        --fc-button-active-bg-color: #6366f1;
+        --fc-button-active-border-color: #6366f1;
+        --fc-button-text-color:      #e8e8f0;
+        color: var(--text);
+        font-family: 'DM Sans', sans-serif;
+    }
+
+    .fc .fc-toolbar-title {
+        font-size: 18px !important;
+        font-weight: 700 !important;
+        color: var(--text) !important;
+        letter-spacing: -0.5px;
+    }
+
+    .fc .fc-button {
+        font-size: 12px !important;
+        font-weight: 600 !important;
+        font-family: 'DM Mono', monospace !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.8px !important;
+        padding: 7px 14px !important;
+        border-radius: 9px !important;
+        transition: all .2s !important;
+    }
+
+    .fc .fc-col-header-cell {
+        padding: 10px 0 !important;
+    }
+
+    .fc .fc-col-header-cell-cushion {
+        font-size: 11px !important;
+        font-family: 'DM Mono', monospace !important;
+        color: var(--muted) !important;
+        letter-spacing: 1.2px !important;
+        text-transform: uppercase !important;
+        text-decoration: none !important;
+        font-weight: 500 !important;
+    }
+
+    .fc .fc-daygrid-day-number {
+        font-size: 12px !important;
+        font-family: 'DM Mono', monospace !important;
+        color: var(--muted) !important;
+        padding: 6px 10px !important;
+        text-decoration: none !important;
+        transition: color .15s;
+    }
+
+    .fc .fc-daygrid-day:hover .fc-daygrid-day-number { color: var(--text) !important; }
+
+    .fc .fc-day-today .fc-daygrid-day-number {
+        color: var(--accent2) !important;
+        font-weight: 700 !important;
+    }
+
+    /* Status cell coloring */
+    .present-safe     { background-color: rgba(34,211,160,.10) !important; }
+    .present-warning  { background-color: rgba(251,191,36,.08) !important; }
+    .absent-danger    { background-color: rgba(248,113,113,.10) !important; }
+
+    .fc-day-today     { background-color: rgba(99,102,241,.07) !important; }
+    .present-safe.fc-day-today    { background-color: rgba(34,211,160,.14) !important; }
+    .present-warning.fc-day-today { background-color: rgba(251,191,36,.12) !important; }
+    .absent-danger.fc-day-today   { background-color: rgba(248,113,113,.14) !important; }
+
+    /* Dot indicator on days with data */
+    .fc-day-has-data::after {
+        content: '';
+        display: block;
+        width: 5px; height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        margin: 0 auto 4px;
+    }
+
+    /* ── MODAL ───────────────────────────────────── */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,.75);
+        backdrop-filter: blur(6px);
+        z-index: 50;
+        display: none;
+        align-items: center; justify-content: center;
+        padding: 20px;
+        transition: opacity .3s;
+    }
+    .modal-overlay.open { display: flex; }
+
+    .modal-box {
+        background: var(--surface);
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        width: 100%; max-width: 500px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .modal-header {
+        padding: 22px 24px 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .modal-date-label {
+        font-family: 'DM Mono', monospace;
+        font-size: 10px; color: var(--accent2);
+        letter-spacing: 1.5px; text-transform: uppercase;
+        margin-bottom: 6px;
+    }
+
+    .modal-date-title {
+        font-size: 18px; font-weight: 700;
+        color: var(--text); letter-spacing: -0.5px;
+    }
+
+    .modal-close {
+        position: absolute; top: 16px; right: 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        width: 30px; height: 30px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; color: var(--muted);
+        transition: all .2s;
+    }
+    .modal-close:hover { background: var(--border2); color: var(--text); }
+
+    .modal-summary {
+        margin: 16px 24px;
+        padding: 12px 16px;
+        border-radius: 10px;
+        font-size: 12px;
+        font-family: 'DM Mono', monospace;
+        border-left: 3px solid;
+        line-height: 1.7;
+    }
+    .summary-green  { background: var(--green-dim);  border-color: var(--green);  color: #9aecd4; }
+    .summary-yellow { background: var(--yellow-dim); border-color: var(--yellow); color: #e8c97b; }
+    .summary-red    { background: var(--red-dim);    border-color: var(--red);    color: #f0a0a0; }
+    .summary-none   { background: var(--surface2);   border-color: var(--border2); color: var(--muted); }
+
+    .modal-list {
+        list-style: none;
+        padding: 0 24px;
+        max-height: 240px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .modal-list::-webkit-scrollbar { width: 4px; }
+    .modal-list::-webkit-scrollbar-track { background: var(--surface2); }
+    .modal-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 4px; }
+
+    .modal-list-item {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 10px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 13px;
+    }
+
+    .list-course { font-weight: 600; color: var(--text); }
+    .list-status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-family: 'DM Mono', monospace; font-weight: 600; }
+    .status-present { color: var(--green); }
+    .status-absent  { color: var(--red); }
+    .status-holiday { color: var(--muted); }
+
+    .modal-footer {
+        padding: 16px 24px;
+        border-top: 1px solid var(--border);
+        display: flex; justify-content: flex-end;
+    }
+
+    .btn-close-modal {
+        padding: 9px 22px;
+        background: var(--accent);
+        border: none; border-radius: 10px;
+        color: #fff; font-size: 13px; font-weight: 600;
+        cursor: pointer; font-family: 'DM Sans', sans-serif;
+        box-shadow: 0 4px 14px rgba(99,102,241,.3);
+        transition: all .2s;
+    }
+    .btn-close-modal:hover { background: #5254d4; }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 860px) {
+        .card-legend     { grid-column: 1 / 13; grid-row: 1; flex-direction: row; flex-wrap: wrap; }
+        .card-stat-safe  { grid-column: 1 / 5;  grid-row: 2; }
+        .card-stat-warning { grid-column: 5 / 9; grid-row: 2; }
+        .card-stat-danger  { grid-column: 9 / 13; grid-row: 2; }
+        .card-calendar   { grid-row: 3; }
+    }
+
+    @media (max-width: 560px) {
+        .card-legend     { grid-column: 1 / 13; }
+        .card-stat-safe  { grid-column: 1 / 13; grid-row: 3; }
+        .card-stat-warning { grid-column: 1 / 13; grid-row: 4; }
+        .card-stat-danger  { grid-column: 1 / 13; grid-row: 5; }
+        .card-calendar   { grid-row: 6; }
+    }
+</style>
+
+<div style="max-width: 1280px; margin: 0 auto; padding: 16px;">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">📅</div>
+            <div>
+                <div class="topbar-title">Attendance Calendar</div>
+                <div class="topbar-sub">History · All Courses</div>
+            </div>
+        </div>
+        <a href="javascript:history.back()" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Bento Grid -->
+    <div class="bento">
+
+        <!-- ── Legend ── -->
+        <div class="card card-legend">
+            <div class="label-tag">Status Legend</div>
+
+            <div class="legend-item">
+                <div class="legend-swatch swatch-green"></div>
+                <div class="legend-text">
+                    <div class="lt-title">Present — Safe</div>
+                    <div class="lt-sub">≥ 75% attendance</div>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-swatch swatch-yellow"></div>
+                <div class="legend-text">
+                    <div class="lt-title">Present — Warning</div>
+                    <div class="lt-sub">50% – 74.9%</div>
+                </div>
+            </div>
+
+            <div class="legend-item">
+                <div class="legend-swatch swatch-red"></div>
+                <div class="legend-text">
+                    <div class="lt-title">Absent — Danger</div>
+                    <div class="lt-sub">&lt; 50% attendance</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Stat: Safe Days ── -->
+        <div class="card card-stat-safe">
+            <div class="label-tag">Safe Days</div>
+            <div class="stat-number green" id="count-safe">—</div>
+            <div class="stat-sub">days ≥ 75%</div>
+            <div class="stat-bar" style="background: var(--green);"></div>
+        </div>
+
+        <!-- ── Stat: Warning Days ── -->
+        <div class="card card-stat-warning">
+            <div class="label-tag">Warning Days</div>
+            <div class="stat-number yellow" id="count-warning">—</div>
+            <div class="stat-sub">days 50–74%</div>
+            <div class="stat-bar" style="background: var(--yellow);"></div>
+        </div>
+
+        <!-- ── Stat: Danger Days ── -->
+        <div class="card card-stat-danger">
+            <div class="label-tag">Danger Days</div>
+            <div class="stat-number red" id="count-danger">—</div>
+            <div class="stat-sub">days &lt; 50%</div>
+            <div class="stat-bar" style="background: var(--red);"></div>
+        </div>
+
+        <!-- ── Calendar ── -->
+        <div class="card card-calendar">
+            <div class="label-tag">Monthly View</div>
+            <div id="calendar"></div>
+        </div>
+
+    </div><!-- /bento -->
+
+</div>
+
+<!-- ── DETAIL MODAL ──────────────────────────── -->
+<div id="detail-modal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <div class="modal-date-label">Attendance Details</div>
+            <div class="modal-date-title" id="modal-date">—</div>
+        </div>
+
+        <button id="close-modal-btn" class="modal-close" type="button">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+        </button>
+
+        <div id="modal-summary" class="modal-summary summary-none">No records.</div>
+
+        <ul id="modal-details-list" class="modal-list"></ul>
+
+        <div class="modal-footer">
+            <button class="btn-close-modal" id="close-modal-btn-2">Close</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    const eventsDataRaw = JSON.parse('{{ calendar_events_json|safe }}');
+    const dateAttendanceMap = {};
+
+    // Count stats
+    let countSafe = 0, countWarning = 0, countDanger = 0;
+
+    const attendanceEvents = eventsDataRaw.map(item => {
+        dateAttendanceMap[item.date] = item;
+        if (item.className.includes('safe'))    countSafe++;
+        else if (item.className.includes('warning')) countWarning++;
+        else if (item.className.includes('danger'))  countDanger++;
+        return {
+            title: item.title,
+            start: item.date,
+            allDay: true,
+            display: 'none',
+            customClassName: item.className,
+            details: item.details,
+            percentage: item.percentage
+        };
+    });
+
+    document.getElementById('count-safe').textContent    = countSafe;
+    document.getElementById('count-warning').textContent = countWarning;
+    document.getElementById('count-danger').textContent  = countDanger;
+
+    // Modal
+    const modal        = document.getElementById('detail-modal');
+    const closeBtn     = document.getElementById('close-modal-btn');
+    const closeBtn2    = document.getElementById('close-modal-btn-2');
+    const modalDateEl  = document.getElementById('modal-date');
+    const modalSumEl   = document.getElementById('modal-summary');
+    const modalListEl  = document.getElementById('modal-details-list');
+
+    const openModal  = () => modal.classList.add('open');
+    const closeModal = () => modal.classList.remove('open');
+
+    closeBtn.addEventListener('click', closeModal);
+    closeBtn2.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+
+    const calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek'
+        },
+        events: attendanceEvents,
+        height: 'auto',
+
+        dayCellDidMount: function (info) {
+            const dateISO = info.date.toISOString().split('T')[0];
+            const dayData = dateAttendanceMap[dateISO];
+            if (dayData && dayData.className) {
+                info.el.classList.add(dayData.className);
+                info.el.classList.add('fc-day-has-data');
+            }
+        },
+
+        dateClick: function (info) {
+            const dateStr = info.dateStr;
+            const dayData = dateAttendanceMap[dateStr];
+
+            modalListEl.innerHTML = '';
+
+            // Format date
+            modalDateEl.textContent = new Date(dateStr).toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            });
+
+            if (dayData) {
+                let summaryClass = 'summary-none';
+                if (dayData.className.includes('safe'))    summaryClass = 'summary-green';
+                else if (dayData.className.includes('warning')) summaryClass = 'summary-yellow';
+                else if (dayData.className.includes('danger'))  summaryClass = 'summary-red';
+
+                modalSumEl.className = 'modal-summary ' + summaryClass;
+                modalSumEl.innerHTML =
+                    `<strong>Status:</strong> ${dayData.status_text} &nbsp;·&nbsp; ${dayData.percentage}%<br>` +
+                    `Classes held: <strong>${dayData.total_records}</strong> &nbsp;|&nbsp; Present: <strong>${dayData.total_present}</strong>`;
+
+                const statusMap = {
+                    1: { text: 'Present',          cls: 'status-present', icon: '✓' },
+                    2: { text: 'Absent',            cls: 'status-absent',  icon: '✕' },
+                    3: { text: 'Holiday/Cancelled', cls: 'status-holiday', icon: '—' }
+                };
+
+                dayData.details.forEach(detail => {
+                    const s = statusMap[detail.status] || { text: 'Unknown', cls: 'status-holiday', icon: '?' };
+                    const li = document.createElement('li');
+                    li.className = 'modal-list-item';
+                    li.innerHTML = `
+                        <span class="list-course">${detail.course__name}</span>
+                        <span class="list-status ${s.cls}">${s.icon} ${s.text}</span>
+                    `;
+                    modalListEl.appendChild(li);
+                });
+            } else {
+                modalSumEl.className = 'modal-summary summary-none';
+                modalSumEl.textContent = 'No attendance records found for this date.';
+            }
+
+            openModal();
+        }
+    });
+
+    calendar.render();
+});
+</script>
+
+{% endblock %}

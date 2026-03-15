@@ -1,0 +1,518 @@
+{% extends 'tracker/base.html' %}
+{% load static %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+        --bg:         #0b0b0e;
+        --surface:    #131317;
+        --surface2:   #1a1a21;
+        --border:     #22222e;
+        --border2:    #2c2c3e;
+        --text:       #e8e8f0;
+        --muted:      #6b6b84;
+        --accent:     #6366f1;
+        --accent2:    #818cf8;
+        --green:      #22d3a0;
+        --green-dim:  #0d2e22;
+        --red:        #f87171;
+        --red-dim:    #2e0d0d;
+        --yellow:     #fbbf24;
+        --yellow-dim: #2e240d;
+        --gray-dim:   #1a1a21;
+        --radius:     18px;
+        --gap:        10px;
+    }
+
+    body {
+        font-family: 'DM Sans', sans-serif;
+        background: var(--bg);
+        min-height: 100vh;
+        color: var(--text);
+        padding: 16px;
+    }
+
+    /* ── TOPBAR ──────────────────────────────────── */
+    .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: var(--gap); flex-wrap: wrap; gap: 10px;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 14px; }
+    .topbar-logo {
+        width: 38px; height: 38px; border-radius: 10px;
+        background: var(--accent);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; font-weight: 800; color: #fff;
+        letter-spacing: -1px; flex-shrink: 0;
+    }
+    .topbar-title { font-size: 20px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+    .topbar-sub   { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 1px; }
+
+    .btn {
+        padding: 9px 18px; border-radius: 10px;
+        font-size: 13px; font-weight: 600;
+        font-family: 'DM Sans', sans-serif;
+        cursor: pointer; text-decoration: none; border: none;
+        transition: all .2s;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+    .btn-ghost:hover { background: var(--surface); border-color: var(--border2); }
+
+    /* ── BENTO ───────────────────────────────────── */
+    .bento {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: var(--gap);
+    }
+
+    .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 22px;
+        position: relative; overflow: hidden;
+        transition: border-color .25s;
+    }
+    .card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+    }
+
+    .label-tag {
+        font-family: 'DM Mono', monospace;
+        font-size: 10px; color: var(--muted);
+        letter-spacing: 1.5px; text-transform: uppercase;
+        margin-bottom: 12px;
+        display: flex; align-items: center; gap: 6px;
+    }
+    .label-tag::before {
+        content: ''; width: 4px; height: 4px;
+        border-radius: 50%; background: currentColor; display: inline-block;
+    }
+
+    /* ── DATE CARD ───────────────────────────────── */
+    .card-date {
+        grid-column: 1 / 5;
+        background: linear-gradient(145deg, #131317, #15152a);
+        border-color: #1e1e36;
+        display: flex; flex-direction: column; justify-content: space-between;
+        min-height: 140px;
+    }
+
+    .date-display {
+        font-size: 22px; font-weight: 800;
+        color: var(--text); letter-spacing: -0.8px; line-height: 1.2;
+    }
+
+    .date-day {
+        font-size: 12px; font-family: 'DM Mono', monospace;
+        color: var(--muted); margin-bottom: 4px; letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .today-pill {
+        display: inline-flex; align-items: center; gap: 5px;
+        background: var(--green-dim); border: 1px solid #0f3a26;
+        border-radius: 20px; padding: 3px 10px;
+        font-size: 10px; font-weight: 700;
+        font-family: 'DM Mono', monospace; color: var(--green);
+        letter-spacing: 1px; text-transform: uppercase;
+        margin-top: 8px; width: fit-content;
+    }
+    .today-pill::before {
+        content: ''; width: 6px; height: 6px; border-radius: 50%;
+        background: var(--green);
+        animation: pulse-dot 2s infinite;
+    }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 1; } 50% { opacity: .4; }
+    }
+
+    /* ── DATE PICKER CARD ────────────────────────── */
+    .card-picker {
+        grid-column: 5 / 9;
+        display: flex; flex-direction: column; justify-content: space-between;
+        min-height: 140px;
+    }
+
+    .date-input {
+        width: 100%;
+        padding: 12px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        color: var(--text);
+        font-size: 14px; font-family: 'DM Mono', monospace;
+        outline: none;
+        transition: border-color .25s, box-shadow .25s;
+        color-scheme: dark;
+    }
+    .date-input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(99,102,241,.12);
+    }
+
+    .btn-load {
+        width: 100%; padding: 12px;
+        background: var(--accent); border: none; border-radius: 12px;
+        color: #fff; font-size: 13px; font-weight: 700;
+        cursor: pointer; font-family: 'DM Sans', sans-serif;
+        transition: all .2s;
+        box-shadow: 0 4px 16px rgba(99,102,241,.3);
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-load:hover { background: #5254d4; transform: translateY(-1px); }
+
+    /* ── SUMMARY STAT CARDS ──────────────────────── */
+    .card-stat-present { grid-column: 9 / 11; min-height: 140px; }
+    .card-stat-absent  { grid-column: 11 / 13; min-height: 140px; }
+
+    .stat-big {
+        font-size: 48px; font-weight: 800;
+        letter-spacing: -2.5px; line-height: 1;
+    }
+    .stat-big.green  { color: var(--green); }
+    .stat-big.red    { color: var(--red); }
+    .stat-big.yellow { color: var(--yellow); }
+
+    .stat-bar {
+        height: 3px; border-radius: 2px;
+        margin-top: 14px; opacity: .5;
+    }
+    .stat-sub {
+        font-size: 11px; font-family: 'DM Mono', monospace;
+        color: var(--muted); letter-spacing: 0.5px; margin-top: 6px;
+    }
+
+    /* ── COURSE CARDS ────────────────────────────── */
+    .card-course {
+        grid-column: span 6;
+        padding: 0; overflow: hidden;
+        transition: border-color .25s, transform .2s;
+    }
+    .card-course:hover { transform: translateY(-2px); }
+
+    /* Left accent bar based on status */
+    .card-course.status-present { border-color: #0f3a26; }
+    .card-course.status-absent  { border-color: #3a0f0f; }
+    .card-course.status-holiday { border-color: #2c2c3e; }
+    .card-course.status-unmarked { border-color: #2e240d; }
+
+    .course-header {
+        padding: 18px 20px 14px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+
+    .course-name {
+        font-size: 15px; font-weight: 700;
+        color: var(--text); letter-spacing: -0.3px;
+    }
+
+    .course-status-badge {
+        display: inline-flex; align-items: center; gap: 5px;
+        padding: 4px 10px; border-radius: 20px;
+        font-size: 10px; font-weight: 700;
+        font-family: 'DM Mono', monospace; letter-spacing: 0.8px;
+        text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-present { background: var(--green-dim); color: var(--green); border: 1px solid #0f3a26; }
+    .badge-absent  { background: var(--red-dim);   color: var(--red);   border: 1px solid #3a0f0f; }
+    .badge-holiday { background: var(--gray-dim);   color: var(--muted); border: 1px solid var(--border2); }
+    .badge-unmarked{ background: var(--yellow-dim); color: var(--yellow);border: 1px solid #3a2c00; }
+
+    /* Radio group */
+    .course-form { padding: 16px 20px 18px; }
+
+    .radio-group {
+        display: flex; gap: 8px; flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .radio-option { position: relative; }
+
+    .radio-option input[type="radio"] {
+        position: absolute; opacity: 0; width: 0; height: 0;
+    }
+
+    .radio-label {
+        display: flex; align-items: center; gap: 7px;
+        padding: 9px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 12px; font-weight: 600;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all .2s;
+        user-select: none;
+    }
+    .radio-label .radio-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        border: 2px solid currentColor;
+        flex-shrink: 0; transition: all .15s;
+    }
+
+    /* Checked states */
+    .radio-option input[type="radio"]:checked + .radio-label.present {
+        background: var(--green-dim); border-color: #0f3a26; color: var(--green);
+    }
+    .radio-option input[type="radio"]:checked + .radio-label.present .radio-dot {
+        background: var(--green); border-color: var(--green);
+        box-shadow: 0 0 0 3px rgba(34,211,160,.2);
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label.absent {
+        background: var(--red-dim); border-color: #3a0f0f; color: var(--red);
+    }
+    .radio-option input[type="radio"]:checked + .radio-label.absent .radio-dot {
+        background: var(--red); border-color: var(--red);
+        box-shadow: 0 0 0 3px rgba(248,113,113,.2);
+    }
+
+    .radio-option input[type="radio"]:checked + .radio-label.holiday {
+        background: var(--gray-dim); border-color: var(--border2); color: var(--text);
+    }
+    .radio-option input[type="radio"]:checked + .radio-label.holiday .radio-dot {
+        background: var(--muted); border-color: var(--muted);
+        box-shadow: 0 0 0 3px rgba(107,107,132,.2);
+    }
+
+    /* Hover states for unchecked */
+    .radio-label.present:hover { border-color: #0f3a26; color: var(--green); }
+    .radio-label.absent:hover  { border-color: #3a0f0f; color: var(--red); }
+    .radio-label.holiday:hover { border-color: var(--border2); color: var(--text); }
+
+    .btn-submit {
+        width: 100%; padding: 11px;
+        background: var(--accent); border: none; border-radius: 11px;
+        color: #fff; font-size: 13px; font-weight: 700;
+        cursor: pointer; font-family: 'DM Sans', sans-serif;
+        transition: all .2s;
+        box-shadow: 0 4px 14px rgba(99,102,241,.25);
+        display: flex; align-items: center; justify-content: center; gap: 7px;
+    }
+    .btn-submit:hover { background: #5254d4; transform: translateY(-1px); }
+    .btn-submit.update { background: var(--surface2); border: 1px solid var(--accent); color: var(--accent2); box-shadow: none; }
+    .btn-submit.update:hover { background: #1e1e30; border-color: var(--accent2); }
+
+    /* ── EMPTY STATE ─────────────────────────────── */
+    .card-empty {
+        grid-column: 1 / 13;
+        padding: 48px;
+        text-align: center;
+        border-style: dashed;
+    }
+    .empty-icon { font-size: 36px; display: block; margin-bottom: 14px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+    .empty-body  { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .empty-body a { color: var(--accent2); font-weight: 600; text-decoration: none; }
+    .empty-body a:hover { text-decoration: underline; }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 900px) {
+        .card-date    { grid-column: 1 / 7; }
+        .card-picker  { grid-column: 7 / 13; }
+        .card-stat-present { grid-column: 1 / 4; }
+        .card-stat-absent  { grid-column: 4 / 7; }
+        .card-course  { grid-column: span 12; }
+    }
+    @media (max-width: 560px) {
+        .bento { grid-template-columns: 1fr 1fr; }
+        .card-date    { grid-column: 1 / 3; }
+        .card-picker  { grid-column: 1 / 3; }
+        .card-stat-present { grid-column: 1 / 2; }
+        .card-stat-absent  { grid-column: 2 / 3; }
+        .card-course  { grid-column: 1 / 3; }
+        .card-empty   { grid-column: 1 / 3; }
+        .radio-group  { flex-direction: column; }
+    }
+</style>
+
+<div style="max-width: 1280px; margin: 0 auto;">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div class="topbar-left">
+            <div class="topbar-logo">✓</div>
+            <div>
+                <div class="topbar-title">Track Attendance</div>
+                <div class="topbar-sub">Mark · Update · Review</div>
+            </div>
+        </div>
+        <a href="{% url 'dashboard' %}" class="btn btn-ghost">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Dashboard
+        </a>
+    </div>
+
+    <div class="bento">
+
+        <!-- ── Date Display ── -->
+        <div class="card card-date">
+            <div class="label-tag">Selected Date</div>
+            <div>
+                <div class="date-day">{{ selected_date|date:"l" }}</div>
+                <div class="date-display">{{ selected_date|date:"F jS, Y" }}</div>
+                {% if is_today %}
+                    <div class="today-pill">Today</div>
+                {% elif is_future %}
+                    <div class="today-pill" style="background:#f87171; color:#fff; border-color:#7f1d1d;">Future Date</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- ── Date Picker ── -->
+        <div class="card card-picker">
+            <div class="label-tag">Change Date</div>
+            <form id="date-form" method="GET" action="{% url 'track_attendance' %}" style="display:flex; flex-direction:column; gap:10px;">
+                <label for="date-input" class="sr-only">Select Date</label>
+                <input type="date" id="date-input" name="date"
+                       value="{{ selected_date|date:'Y-m-d' }}"
+                       max="{{ today|date:'Y-m-d' }}"
+                       class="date-input">
+                <button type="submit" class="btn-load">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.47"/></svg>
+                    Load Date
+                </button>
+            </form>
+        </div>
+
+        <!-- ── Stat: Present count ── -->
+        <div class="card card-stat-present">
+            <div class="label-tag">Present</div>
+            <div class="stat-big green">
+                <span id="count-present">—</span>
+            </div>
+            <div class="stat-sub">marked today</div>
+            <div class="stat-bar" style="background: var(--green);"></div>
+        </div>
+
+        <!-- ── Stat: Absent count ── -->
+        <div class="card card-stat-absent">
+            <div class="label-tag">Absent</div>
+            <div class="stat-big red"><span id="count-absent">—</span></div>
+            <div class="stat-sub">marked today</div>
+            <div class="stat-bar" style="background: var(--red);"></div>
+        </div>
+
+        <!-- ── Course Cards ── -->
+        {% if attendance_data %}
+            {% for data in attendance_data %}
+
+            <div class="card card-course
+                {% if data.status == 1 %}status-present
+                {% elif data.status == 2 %}status-absent
+                {% elif data.status == 3 %}status-holiday
+                {% else %}status-unmarked{% endif %}"
+                data-status="{{ data.status|default:0 }}">
+
+                <!-- Course header -->
+                <div class="course-header">
+                    <div class="course-name">{{ data.course.name }}</div>
+                    {% if data.is_marked %}
+                        {% if data.status == 1 %}
+                            <span class="course-status-badge badge-present">● Present</span>
+                        {% elif data.status == 2 %}
+                            <span class="course-status-badge badge-absent">● Absent</span>
+                        {% else %}
+                            <span class="course-status-badge badge-holiday">— Holiday</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="course-status-badge badge-unmarked">! Not Marked</span>
+                    {% endif %}
+                </div>
+
+                <!-- Form -->
+                <div class="course-form">
+                    <form method="POST" action="{% url 'track_attendance' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="course_id" value="{{ data.course.id }}">
+                        <input type="hidden" name="record_date" value="{{ selected_date|date:'Y-m-d' }}">
+
+                        <div class="radio-group">
+                            <div class="radio-option">
+                                <input type="radio" name="status" value="1"
+                                       id="present-{{ data.course.id }}"
+                                       {% if data.status == 1 %}checked{% endif %}
+                                       {% if is_future %}disabled{% endif %}>
+                                <label for="present-{{ data.course.id }}" class="radio-label present">
+                                    <span class="radio-dot"></span>Present
+                                </label>
+                            </div>
+
+                            <div class="radio-option">
+                                <input type="radio" name="status" value="2"
+                                       id="absent-{{ data.course.id }}"
+                                       {% if data.status == 2 %}checked{% endif %}
+                                       {% if is_future %}disabled{% endif %}>
+                                <label for="absent-{{ data.course.id }}" class="radio-label absent">
+                                    <span class="radio-dot"></span>Absent
+                                </label>
+                            </div>
+
+                            <div class="radio-option">
+                                <input type="radio" name="status" value="3"
+                                       id="holiday-{{ data.course.id }}"
+                                       {% if data.status == 3 %}checked{% endif %}
+                                       {% if is_future %}disabled{% endif %}>
+                                <label for="holiday-{{ data.course.id }}" class="radio-label holiday">
+                                    <span class="radio-dot"></span>Holiday / Cancelled
+                                </label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit {% if data.is_marked %}update{% endif %}" {% if is_future %}disabled{% endif %}>
+                            {% if data.is_marked %}
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.47"/></svg>
+                                Update Status
+                            {% else %}
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                                Mark Attendance
+                            {% endif %}
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+
+            {% endfor %}
+
+        {% else %}
+            <div class="card card-empty">
+                <span class="empty-icon">📚</span>
+                <div class="empty-title">No Courses Found</div>
+                <div class="empty-body">
+                    You haven't added any courses yet.<br>
+                    <a href="{% url 'manage_courses' %}">Add courses</a> to start tracking attendance.
+                </div>
+            </div>
+        {% endif %}
+
+    </div><!-- /bento -->
+
+</div>
+
+<script>
+    // Count present / absent from rendered cards and update stat tiles
+    document.addEventListener('DOMContentLoaded', function () {
+        const cards = document.querySelectorAll('.card-course');
+        let present = 0, absent = 0;
+        cards.forEach(c => {
+            const s = parseInt(c.dataset.status);
+            if (s === 1) present++;
+            else if (s === 2) absent++;
+        });
+        const pEl = document.getElementById('count-present');
+        const aEl = document.getElementById('count-absent');
+        if (pEl) pEl.textContent = present;
+        if (aEl) aEl.textContent = absent;
+    });
+</script>
+
+{% endblock content %}

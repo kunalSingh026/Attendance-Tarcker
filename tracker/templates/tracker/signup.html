@@ -1,0 +1,392 @@
+<!-- {% extends 'tracker/base.html' %} -->
+<!-- {% block title %}Sign up - Attendance Tracker{% endblock %} -->
+<!-- {% block content %} -->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #0c0c0f;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 12px;
+    max-width: 960px;
+    width: 100%;
+  }
+
+  .bento-card {
+    background: #141418;
+    border: 1px solid #1e1e26;
+    border-radius: 20px;
+    padding: 28px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+  }
+
+  /* Card 1: Brand / left panel */
+  .card-brand {
+    grid-column: 1 / 5;
+    grid-row: 1 / 4;
+    background: linear-gradient(145deg, #141418, #1a1a28);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 520px;
+  }
+
+  .card-brand::before {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -80px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+  }
+
+  .mono-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #6366f1;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .mono-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #6366f1;
+    display: inline-block;
+  }
+
+  .brand-top h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #f4f4f8;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+  }
+
+  .brand-top p {
+    font-size: 13px;
+    color: #6b6b80;
+    margin-top: 12px;
+    line-height: 1.7;
+  }
+
+  .feature-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #0f0f14;
+    border: 1px solid #1e1e26;
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+
+  .feature-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .feature-txt {
+    font-size: 12px;
+    color: #8888a0;
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* Card 2: Form top — username + email */
+  .card-form-top {
+    grid-column: 5 / 13;
+    grid-row: 1 / 2;
+    padding: 32px 36px;
+  }
+
+  .form-header {
+    margin-bottom: 24px;
+  }
+
+  .form-header h3 {
+    font-size: 22px;
+    font-weight: 700;
+    color: #f4f4f8;
+    letter-spacing: -0.5px;
+  }
+
+  .form-header p {
+    font-size: 13px;
+    color: #6b6b80;
+    margin-top: 4px;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 10px;
+    font-weight: 500;
+    color: #8888a0;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .input-wrap {
+    position: relative;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 12px 40px 12px 14px;
+    background: #0f0f14;
+    border: 1px solid #1e1e26;
+    border-radius: 12px;
+    color: #f4f4f8;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    transition: border-color 0.25s, box-shadow 0.25s;
+    outline: none;
+  }
+
+  .form-group input::placeholder {
+    color: #3a3a4e;
+  }
+
+  .form-group input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    background: #111118;
+  }
+
+  .input-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #3a3a4e;
+    pointer-events: none;
+  }
+
+  /* Card 3: Password fields */
+  .card-form-pw {
+    grid-column: 5 / 13;
+    grid-row: 2 / 3;
+    padding: 28px 36px;
+  }
+
+  /* Card 4: Submit + login link */
+  .card-submit {
+    grid-column: 5 / 13;
+    grid-row: 3 / 4;
+    background: #0f0f14;
+    border-color: #1a1a22;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 36px;
+    flex-wrap: wrap;
+  }
+
+  .submit-btn {
+    padding: 13px 36px;
+    background: #6366f1;
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    letter-spacing: 0.3px;
+    transition: background 0.25s, transform 0.2s, box-shadow 0.25s;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.3);
+    white-space: nowrap;
+  }
+
+  .submit-btn:hover {
+    background: #5254cc;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 24px rgba(99,102,241,0.4);
+  }
+
+  .login-link-wrap {
+    font-size: 13px;
+    color: #6b6b80;
+  }
+
+  .login-link-wrap a {
+    color: #8b8df8;
+    text-decoration: none;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
+  .login-link-wrap a:hover {
+    color: #a5a6ff;
+    text-decoration: underline;
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: #8888a0;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 720px) {
+    .bento-grid { grid-template-columns: 1fr; }
+    .card-brand { grid-column: 1; grid-row: 1; min-height: auto; }
+    .card-form-top { grid-column: 1; grid-row: 2; padding: 24px; }
+    .card-form-pw { grid-column: 1; grid-row: 3; padding: 24px; }
+    .card-submit { grid-column: 1; grid-row: 4; }
+    .form-row { grid-template-columns: 1fr; }
+    .card-brand { display: none; }
+  }
+</style>
+
+<!-- Floating Spheres (kept but hidden — brand panel replaces them) -->
+
+<div class="bento-grid">
+
+  <!-- Brand Panel -->
+  <div class="bento-card card-brand">
+    <div class="brand-top">
+      <h2>Create<br>Account</h2>
+      <p>Join and start tracking your academic attendance across all your courses.</p>
+    </div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <span class="feature-icon">📊</span>
+        <span class="feature-txt">Per-course reports</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📅</span>
+        <span class="feature-txt">Calendar view</span>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">✅</span>
+        <span class="feature-txt">Mark attendance</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Username + Email -->
+  <div class="bento-card card-form-top">
+    <div class="form-header">
+      <h3>Your Details</h3>
+      <p>Fill in your account information below</p>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="username">Username</label>
+        <div class="input-wrap">
+          <input type="text" id="username" name="username" placeholder="Choose a username" required autocomplete="username">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email (Optional)</label>
+        <div class="input-wrap">
+          <input type="email" id="email" name="email" placeholder="your@email.com" autocomplete="email">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passwords -->
+  <div class="bento-card card-form-pw">
+    <div class="section-label">Security</div>
+    <form method="POST" id="signup-form">
+      {% csrf_token %}
+      <!-- Hidden inputs carry over username/email — actual form wraps all -->
+    </form>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrap">
+          <input type="password" id="password" name="password" placeholder="Create a strong password" required autocomplete="new-password" form="signup-form">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="password2">Confirm Password</label>
+        <div class="input-wrap">
+          <input type="password" id="password2" name="password2" placeholder="Confirm your password" required autocomplete="new-password" form="signup-form">
+          <svg class="input-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="bento-card card-submit">
+    <div class="login-link-wrap">
+      Already have an account?<a href="{% url 'login' %}">Sign in</a>
+    </div>
+    <button type="submit" form="signup-form" class="submit-btn">Create Account →</button>
+  </div>
+
+</div>
+
+<script>
+  // Link username/email inputs to the real form
+  document.querySelector('#signup-form').addEventListener('submit', function(e) {
+    const un = document.getElementById('username');
+    const em = document.getElementById('email');
+    if (un && !this.querySelector('[name=username]')) {
+      const hi = document.createElement('input');
+      hi.type = 'hidden'; hi.name = 'username'; hi.value = un.value;
+      this.appendChild(hi);
+    }
+    if (em && !this.querySelector('[name=email]')) {
+      const hi2 = document.createElement('input');
+      hi2.type = 'hidden'; hi2.name = 'email'; hi2.value = em.value;
+      this.appendChild(hi2);
+    }
+  });
+</script>
+
+{% endblock %}
