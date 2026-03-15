@@ -101,12 +101,9 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# Tell WhiteNoise to use Gzip compression and manifest files for caching
-STORAGES = {
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+# Tell WhiteNoise to use Gzip compression for static files.
+# We avoid manifest storage in this simple deploy to prevent missing-manifest errors.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # --- 6. WSGI, TEMPLATES, and other settings ---
 

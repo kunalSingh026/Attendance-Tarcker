@@ -1,1 +1,1 @@
-web: sh -lc "python manage.py migrate && gunicorn attendance_tracker.wsgi:application"
+web: sh -lc "python manage.py collectstatic --noinput && python manage.py migrate && gunicorn attendance_tracker.wsgi:application"
